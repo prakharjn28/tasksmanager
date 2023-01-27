@@ -1,5 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'package:tasksmanager/models/TaskModel.dart';
+import 'package:tasksmanager/models/TaskRelationship.dart';
+import 'package:tasksmanager/screens/add_relationship.dart';
+import 'package:tasksmanager/screens/relationshipList.dart';
+
+import '../provider/taskProvider.dart';
 
 const List<String> statusList = <String>[
   'Status',
@@ -10,20 +16,9 @@ const List<String> statusList = <String>[
 
 class CreateTask extends StatefulWidget {
   final bool isFirst;
-  final String title;
-  final String description;
-  final String status;
-  final DateTime time;
+  final int id;
 
-  CreateTask(
-      {Key? key,
-      this.isFirst = true,
-      this.title = '',
-      this.description = '',
-      DateTime? time,
-      this.status = 'Status'})
-      : time = time ?? DateTime.now(),
-        super(key: key);
+  const CreateTask({super.key, this.isFirst = true, this.id = 0});
 
   @override
   State<CreateTask> createState() => _CreateTaskState();
@@ -32,20 +27,33 @@ class CreateTask extends StatefulWidget {
 class _CreateTaskState extends State<CreateTask> with InputValidationMixin {
   final formKey = GlobalKey<FormState>();
 
+  String title = "";
+  String description = "";
+  late int id;
+  String status = statusList.first;
+  DateTime time = DateTime.now();
+  List<TaskRelationship> relatedTasks = [];
+
   @override
   void initState() {
     super.initState();
-    status = widget.status;
-    setState(() {
-      title = widget.title;
-      description = widget.description;
-    });
+    var tasksProvider = Provider.of<TaskProvider>(context, listen: false);
+    if (!widget.isFirst) {
+      TaskModel task =
+          tasksProvider.tasks.firstWhere((element) => element.id == widget.id);
+      setState(() {
+        title = task.title!;
+        description = task.description!;
+        id = task.id!;
+        status = task.status!;
+        relatedTasks = task.relatedTasks!;
+      });
+    } else {
+      setState(() {
+        id = tasksProvider.tasks.length;
+      });
+    }
   }
-
-  String title = "";
-  String description = "";
-  String status = statusList.first;
-  DateTime time = DateTime.now();
 
   void onChangedTitle(String newText) {
     if (newText.isNotEmpty) {
@@ -64,20 +72,79 @@ class _CreateTaskState extends State<CreateTask> with InputValidationMixin {
   }
 
   void onUpdate() {
+    var tasksProvider = Provider.of<TaskProvider>(context, listen: false);
     if (formKey.currentState!.validate()) {
       formKey.currentState!.save();
-      Navigator.pop(
-          context,
-          TaskModel(
-              title: title,
-              description: description,
-              status: status,
-              time: time));
+      var result = TaskModel(
+          id: id,
+          title: title,
+          description: description,
+          status: status,
+          relatedTasks: relatedTasks,
+          time: time);
+      if (!widget.isFirst) {
+        int index =
+            tasksProvider.tasks.indexWhere((element) => element.id == id);
+        tasksProvider.editTask(result, index);
+        tasksProvider.editRelationship(result, relatedTasks);
+      } else {
+        tasksProvider.addTask(result);
+        tasksProvider.addRelationship(result, relatedTasks);
+      }
+      Navigator.pop(context);
     }
+  }
+
+  Future<void> _addRelation(BuildContext context) async {
+    final result = await Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => AddRelationship()),
+    );
+    if (result != null) {
+      setState(() {
+        relatedTasks.add(result);
+      });
+    }
+  }
+
+  Future<void> _editRelation(
+      BuildContext context, int index, String relation, TaskModel task) async {
+    final result = await Navigator.push(
+      context,
+      MaterialPageRoute(
+          builder: (context) => AddRelationship(
+                relation: relation,
+                task: task,
+              )),
+    );
+    if (result != null) {
+      setState(() {
+        relatedTasks.removeAt(index);
+        relatedTasks.insert(0, result);
+      });
+    }
+  }
+
+  Future<void> _editTask(BuildContext context, int id) async {
+    final result = await Navigator.push(
+      context,
+      MaterialPageRoute(
+          builder: (context) => CreateTask(
+                isFirst: false,
+                id: id,
+              )),
+    );
+  }
+
+  void _removeRelation(int index) {
+    setState(() {
+      relatedTasks.removeAt(index);
+    });
   }
 
   @override
   Widget build(BuildContext context) {
+    var tasksProvider = Provider.of<TaskProvider>(context);
     return Scaffold(
       appBar: AppBar(
         title: Text(widget.isFirst ? "Create Task" : "Edit Task"),
@@ -93,7 +160,7 @@ class _CreateTaskState extends State<CreateTask> with InputValidationMixin {
               Padding(
                 padding: const EdgeInsets.symmetric(vertical: 8),
                 child: TextFormField(
-                  initialValue: widget.title,
+                  initialValue: title,
                   onChanged: onChangedTitle,
                   maxLines: 2,
                   minLines: 1,
@@ -112,7 +179,7 @@ class _CreateTaskState extends State<CreateTask> with InputValidationMixin {
               Padding(
                 padding: const EdgeInsets.symmetric(vertical: 10),
                 child: TextFormField(
-                  initialValue: widget.description,
+                  initialValue: description,
                   onChanged: onChangedDescription,
                   maxLines: 2,
                   validator: (val) {
@@ -163,7 +230,7 @@ class _CreateTaskState extends State<CreateTask> with InputValidationMixin {
                   ? Padding(
                       padding: const EdgeInsets.symmetric(vertical: 10),
                       child: Text(
-                        "Last Updated on: ${widget.time}",
+                        "Last Updated on: ${time}",
                         style: const TextStyle(
                             color: Colors.black,
                             fontSize: 20,
@@ -171,7 +238,15 @@ class _CreateTaskState extends State<CreateTask> with InputValidationMixin {
                       ),
                     )
                   : Container(),
-              Center(
+              relatedTasks.isNotEmpty
+                  ? RelationshipList(
+                      relations: relatedTasks,
+                      editTasks: _editTask,
+                      editRelation: _editRelation,
+                      removeTask: _removeRelation)
+                  : Container(),
+              Align(
+                alignment: Alignment.bottomCenter,
                 child: Padding(
                   padding: const EdgeInsets.symmetric(vertical: 10),
                   child: ElevatedButton(
@@ -187,19 +262,28 @@ class _CreateTaskState extends State<CreateTask> with InputValidationMixin {
                     // style: ElevatedButton.,
                   ),
                 ),
-              )
+              ),
             ],
           ),
         ),
       ),
+      floatingActionButton: tasksProvider.tasks.isNotEmpty
+          ? FloatingActionButton.extended(
+              onPressed: () {
+                // Add your onPressed code here!
+              },
+              label: const Text('Add Relationship'),
+              icon: const Icon(Icons.add),
+            )
+          : Container(),
     );
   }
 }
 
 // #For Validation
 mixin InputValidationMixin {
-  bool isTitleValid(String title) => title.length >= 6;
+  bool isTitleValid(String title) => title.length >= 3;
   bool isDescriptionValid(String description) =>
-      description.length > 6 && description.length <= 250;
+      description.length > 2 && description.length <= 250;
   bool isStatusValid(String sta) => sta != statusList.first;
 }

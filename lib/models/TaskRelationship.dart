@@ -2,10 +2,10 @@ import 'TaskModel.dart';
 
 class TaskRelationship {
   final TaskModel relatedTask;
-  String label;
+  String relation;
 
   TaskRelationship({
     required this.relatedTask,
-    this.label = "",
+    this.relation = "",
   });
 }

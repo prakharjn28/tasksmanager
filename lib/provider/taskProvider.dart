@@ -26,13 +26,18 @@ class TaskProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  // void addRelationship(TaskModel task, TaskRelationship relationship) {
-  //   task.relationships.add(relationship);
-  //   notifyListeners();
-  // }
+  void addRelationship(TaskModel task, List<TaskRelationship> relatedTask) {
+    task.relatedTasks = relatedTask;
+    notifyListeners();
+  }
 
-  // void removeRelationship(TaskModel task, TaskRelationship relationship) {
-  //   task.relationships.remove(relationship);
-  //   notifyListeners();
-  // }
+  void editRelationship(TaskModel task, List<TaskRelationship> relatedTask) {
+    task.relatedTasks = relatedTask;
+    notifyListeners();
+  }
+
+  void removeRelationship(TaskModel task, TaskRelationship relationship) {
+    task.relatedTasks!.remove(relationship);
+    notifyListeners();
+  }
 }
