@@ -270,6 +270,7 @@ class _CreateTaskState extends State<CreateTask> with InputValidationMixin {
       floatingActionButton: tasksProvider.tasks.isNotEmpty
           ? FloatingActionButton.extended(
               onPressed: () {
+                _addRelation(context);
                 // Add your onPressed code here!
               },
               label: const Text('Add Relationship'),
