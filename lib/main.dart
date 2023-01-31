@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
 import 'package:provider/provider.dart';
-import 'package:tasksmanager/create_task.dart';
-import 'package:tasksmanager/home.dart';
+import 'package:tasksmanager/screens/create_task.dart';
+import 'package:tasksmanager/screens/home.dart';
 import 'package:tasksmanager/models/TaskModel.dart';
 import 'package:tasksmanager/routes.dart';
 import 'package:tasksmanager/provider/taskProvider.dart';
@@ -61,40 +61,13 @@ class _MyHomePageState extends State<MyHomePage> {
 
     // Navigator.push returns a Future that completes after calling
     // Navigator.pop on the Selection Screen.
-    final result = await Navigator.push(
-      context,
-      MaterialPageRoute(builder: (context) => CreateTask()),
-    );
-    // When a BuildContext is used from a StatefulWidget, the mounted property
-    // must be checked after an asynchronous gap.
-    if (!mounted) return;
-    if (result != null) {
-      tasksProvider.addTask(result);
-    }
-  }
-
-  Future<void> _editNavigate(BuildContext context, task, int index) async {
-    // Navigator.push returns a Future that completes after calling
-    // Navigator.pop on the Selection Screen.
-    var tasksProvider = Provider.of<TaskProvider>(context, listen: false);
-
-    final result = await Navigator.push(
+    Navigator.push(
       context,
       MaterialPageRoute(
           builder: (context) => CreateTask(
-                isFirst: false,
-                title: task.title!,
-                description: task.description!,
-                status: task.status!,
-                time: task.time!,
+                id: tasksProvider.tasks.length,
               )),
     );
-    // When a BuildContext is used from a StatefulWidget, the mounted property
-    // must be checked after an asynchronous gap.
-    if (!mounted) return;
-    if (result != null) {
-      tasksProvider.editTask(result, index);
-    }
   }
 
   @override
@@ -119,10 +92,7 @@ class _MyHomePageState extends State<MyHomePage> {
                       textAlign: TextAlign.center,
                     ),
                   )
-                : Home(
-                    tasks: tasksProvider.tasks,
-                    update: _editNavigate,
-                  )
+                : Home()
           ],
         ),
       ),

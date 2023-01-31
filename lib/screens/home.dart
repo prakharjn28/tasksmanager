@@ -1,28 +1,43 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'package:tasksmanager/provider/taskProvider.dart';
+import 'package:tasksmanager/screens/create_task.dart';
 
-import 'models/TaskModel.dart';
+import '../models/TaskModel.dart';
 
 class Home extends StatefulWidget {
-  const Home({Key? key, required this.tasks, required this.update})
-      : super(key: key);
-  final List<TaskModel> tasks;
-  final Future<void> Function(BuildContext, dynamic, int) update;
+  const Home({
+    Key? key,
+  }) : super(key: key);
 
   @override
   State<Home> createState() => _HomeState();
 }
 
 class _HomeState extends State<Home> {
+  void _editTask(BuildContext context, int id) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+          builder: (context) => CreateTask(
+                isFirst: false,
+                id: id,
+              )),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
+    var tasksProvider = Provider.of<TaskProvider>(context);
+
     return Expanded(
       child: ListView.builder(
-        itemCount: widget.tasks.length,
+        itemCount: tasksProvider.tasks.length,
         itemBuilder: (context, index) {
-          final task = widget.tasks[index];
+          final task = tasksProvider.tasks[index];
           return InkWell(
             onTap: () {
-              widget.update(context, task, index);
+              _editTask(context, task.id!);
             },
             child: Padding(
               padding: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 5),
