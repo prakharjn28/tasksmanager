@@ -3,8 +3,8 @@ import 'package:tasksmanager/models/TaskModel.dart';
 import 'package:tasksmanager/models/TaskRelationship.dart';
 
 class TaskProvider extends ChangeNotifier {
-  List<TaskModel> _tasks = [];
-  List<String> _relationshipLabels = [
+  final List<TaskModel> _tasks = [];
+  final List<String> _relationshipLabels = [
     'is subtask of',
     'is blocked by',
     'is alternative to',
