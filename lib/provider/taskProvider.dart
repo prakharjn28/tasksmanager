@@ -40,4 +40,9 @@ class TaskProvider extends ChangeNotifier {
     task.relatedTasks!.remove(relationship);
     notifyListeners();
   }
+
+  set tasks(List<TaskModel> value) {
+    _tasks = value;
+    notifyListeners();
+  }
 }

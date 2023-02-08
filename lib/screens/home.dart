@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:tasksmanager/provider/taskProvider.dart';
 import 'package:tasksmanager/screens/create_task.dart';
+import 'package:tasksmanager/widgets/TaskTile.dart';
 
 import '../models/TaskModel.dart';
 
@@ -12,10 +13,7 @@ class Home extends StatefulWidget {
 
   @override
   State<Home> createState() => _HomeState();
-}
-
-class _HomeState extends State<Home> {
-  void _editTask(BuildContext context, int id) {
+  void editTask(BuildContext context, int id) {
     Navigator.push(
       context,
       MaterialPageRoute(
@@ -25,7 +23,9 @@ class _HomeState extends State<Home> {
               )),
     );
   }
+}
 
+class _HomeState extends State<Home> {
   @override
   Widget build(BuildContext context) {
     var tasksProvider = Provider.of<TaskProvider>(context);
@@ -36,23 +36,10 @@ class _HomeState extends State<Home> {
         itemBuilder: (context, index) {
           final task = tasksProvider.tasks[index];
           return InkWell(
-            onTap: () {
-              _editTask(context, task.id!);
-            },
-            child: Padding(
-              padding: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 5),
-              child: Card(
-                child: ListTile(
-                  title: Text(
-                    task.title!,
-                    style: const TextStyle(
-                        fontWeight: FontWeight.bold, fontSize: 20),
-                  ),
-                  trailing: const Icon(Icons.edit),
-                ),
-              ),
-            ),
-          );
+              onTap: () {
+                widget.editTask(context, task.id!);
+              },
+              child: TaskTile(title: task.title!));
         },
       ),
     );

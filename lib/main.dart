@@ -44,10 +44,9 @@ class MyHomePage extends StatefulWidget {
 }
 
 class _MyHomePageState extends State<MyHomePage> {
-  List<TaskModel> tasks = [];
-
   Future<void> _createNavigate(BuildContext context) async {
-    var tasksProvider = Provider.of<TaskProvider>(context, listen: false);
+    TaskProvider tasksProvider =
+        Provider.of<TaskProvider>(context, listen: false);
 
     // Navigator.push returns a Future that completes after calling
     // Navigator.pop on the Selection Screen.
@@ -62,7 +61,7 @@ class _MyHomePageState extends State<MyHomePage> {
 
   @override
   Widget build(BuildContext context) {
-    var tasksProvider = Provider.of<TaskProvider>(context);
+    TaskProvider tasksProvider = Provider.of<TaskProvider>(context);
 
     return Scaffold(
       appBar: AppBar(
@@ -82,7 +81,7 @@ class _MyHomePageState extends State<MyHomePage> {
                       textAlign: TextAlign.center,
                     ),
                   )
-                : Home()
+                : const Home()
           ],
         ),
       ),
@@ -90,7 +89,6 @@ class _MyHomePageState extends State<MyHomePage> {
         onPressed: () {
           _createNavigate(context);
         },
-        // tooltip: 'Increment',
         child: const Icon(Icons.add),
       ), // This trailing comma makes auto-formatting nicer for build methods.
     );
