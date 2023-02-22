@@ -44,6 +44,12 @@ class MyHomePage extends StatefulWidget {
 }
 
 class _MyHomePageState extends State<MyHomePage> {
+  @override
+  void initState() {
+    super.initState();
+    context.read<TaskProvider>().loadTasks();
+  }
+
   List<TaskModel> tasks = [];
 
   Future<void> _createNavigate(BuildContext context) async {

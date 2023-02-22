@@ -28,32 +28,33 @@ class _HomeState extends State<Home> {
 
   @override
   Widget build(BuildContext context) {
-    var tasksProvider = Provider.of<TaskProvider>(context);
-
     return Expanded(
-      child: ListView.builder(
-        itemCount: tasksProvider.tasks.length,
-        itemBuilder: (context, index) {
-          final task = tasksProvider.tasks[index];
-          return InkWell(
-            onTap: () {
-              _editTask(context, task.id!);
-            },
-            child: Padding(
-              padding: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 5),
-              child: Card(
-                child: ListTile(
-                  title: Text(
-                    task.title!,
-                    style: const TextStyle(
-                        fontWeight: FontWeight.bold, fontSize: 20),
+      child: Consumer<TaskProvider>(
+        builder: (context, taskList, _) => ListView.builder(
+          itemCount: taskList.tasks.length,
+          itemBuilder: (context, index) {
+            final task = taskList.tasks[index];
+            return InkWell(
+              onTap: () {
+                _editTask(context, task.id!);
+              },
+              child: Padding(
+                padding:
+                    const EdgeInsets.symmetric(vertical: 8.0, horizontal: 5),
+                child: Card(
+                  child: ListTile(
+                    title: Text(
+                      task.title!,
+                      style: const TextStyle(
+                          fontWeight: FontWeight.bold, fontSize: 20),
+                    ),
+                    trailing: const Icon(Icons.edit),
                   ),
-                  trailing: const Icon(Icons.edit),
                 ),
               ),
-            ),
-          );
-        },
+            );
+          },
+        ),
       ),
     );
   }
