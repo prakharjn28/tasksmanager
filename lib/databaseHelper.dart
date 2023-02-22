@@ -1,6 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
-import 'package:path/path.dart';
+import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 import 'package:sqflite/sqflite.dart';
 import 'package:tasksmanager/models/TaskModel.dart';
@@ -19,6 +19,7 @@ class DatabaseHelper {
   static const columnStatus = 'status';
   static const columnTime = 'time';
   static const columnRelatedTasks = 'relatedTasks';
+  static const columnImageAddress = 'imageAddress';
 
   // make this a singleton class
   DatabaseHelper._privateConstructor();
@@ -35,7 +36,7 @@ class DatabaseHelper {
   // open the database
   _initDatabase() async {
     Directory documentsDirectory = await getApplicationDocumentsDirectory();
-    String path = join(documentsDirectory.path, _databaseName);
+    String path = p.join(documentsDirectory.path, _databaseName);
     return await openDatabase(path,
         version: _databaseVersion, onCreate: _onCreate);
   }
@@ -49,7 +50,8 @@ class DatabaseHelper {
   $columnDescription TEXT NOT NULL,
   $columnStatus TEXT NOT NULL,
   $columnTime INTEGER,
-  $columnRelatedTasks TEXT
+  $columnRelatedTasks TEXT,
+  $columnImageAddress TEXT
   )
 ''');
   }
@@ -64,7 +66,8 @@ class DatabaseHelper {
       columnStatus: task.status,
       columnTime: task.time?.millisecondsSinceEpoch,
       columnRelatedTasks:
-          jsonEncode(task.relatedTasks?.map((rel) => rel.toMap()).toList())
+          jsonEncode(task.relatedTasks?.map((rel) => rel.toMap()).toList()),
+      columnImageAddress: task.imageAddress
     };
     if (task.id != null) {
       map[columnId] = task.id;
@@ -78,19 +81,19 @@ class DatabaseHelper {
 // Convert a Map object into a TaskModel object
   TaskModel _mapToTask(Map<String, dynamic> map) {
     return TaskModel(
-      id: map[columnId],
-      title: map[columnTitle],
-      description: map[columnDescription],
-      status: map[columnStatus],
-      time: map[columnTime] != null
-          ? DateTime.fromMillisecondsSinceEpoch(map[columnTime])
-          : null,
-      relatedTasks: map[columnRelatedTasks]?.isNotEmpty == true
-          ? (jsonDecode(map[columnRelatedTasks]) as List<dynamic>)
-              .map((rel) => TaskRelationship.fromMap(rel))
-              .toList()
-          : null,
-    );
+        id: map[columnId],
+        title: map[columnTitle],
+        description: map[columnDescription],
+        status: map[columnStatus],
+        time: map[columnTime] != null
+            ? DateTime.fromMillisecondsSinceEpoch(map[columnTime])
+            : null,
+        relatedTasks: map[columnRelatedTasks]?.isNotEmpty == true
+            ? (jsonDecode(map[columnRelatedTasks]) as List<dynamic>)
+                .map((rel) => TaskRelationship.fromMap(rel))
+                .toList()
+            : null,
+        imageAddress: map[columnImageAddress]);
   }
 
 // Insert a new task into the database

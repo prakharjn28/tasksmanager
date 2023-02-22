@@ -10,6 +10,6 @@ class Routes {
 
   static final routes = <String, WidgetBuilder>{
     createTask: (BuildContext context) => CreateTask(),
-    addRelation: (context) => AddRelationship()
+    addRelation: (context) => AddRelationship(),
   };
 }

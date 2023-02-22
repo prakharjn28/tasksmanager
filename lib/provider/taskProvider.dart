@@ -75,7 +75,6 @@ class TaskProvider extends ChangeNotifier {
   }
 
   Future<void> loadTasks() async {
-    print('calling load task');
     _tasks = await DatabaseHelper.instance.getTasks();
     notifyListeners();
   }

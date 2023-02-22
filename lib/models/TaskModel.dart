@@ -7,15 +7,16 @@ class TaskModel {
   String? status;
   DateTime? time;
   List<TaskRelationship>? relatedTasks;
+  String? imageAddress;
 
-  TaskModel({
-    required this.id,
-    required this.title,
-    required this.description,
-    required this.status,
-    this.time,
-    this.relatedTasks,
-  });
+  TaskModel(
+      {required this.id,
+      required this.title,
+      required this.description,
+      required this.status,
+      this.time,
+      this.relatedTasks,
+      this.imageAddress});
 
   Map<String, dynamic> toMap() {
     return {
@@ -26,21 +27,22 @@ class TaskModel {
       'time': time?.millisecondsSinceEpoch,
       'relatedTasks':
           relatedTasks?.map((relationship) => relationship.toMap()).toList(),
+      'imageAddress': imageAddress
     };
   }
 
   static TaskModel fromMap(Map<String, dynamic> map) {
     return TaskModel(
-      id: map['id'],
-      title: map['title'],
-      description: map['description'],
-      status: map['status'],
-      time: map['time'] != null
-          ? DateTime.fromMillisecondsSinceEpoch(map['time'])
-          : null,
-      relatedTasks: (map['relatedTasks'] as List<dynamic>?)
-          ?.map((item) => TaskRelationship.fromMap(item))
-          .toList(),
-    );
+        id: map['id'],
+        title: map['title'],
+        description: map['description'],
+        status: map['status'],
+        time: map['time'] != null
+            ? DateTime.fromMillisecondsSinceEpoch(map['time'])
+            : null,
+        relatedTasks: (map['relatedTasks'] as List<dynamic>?)
+            ?.map((item) => TaskRelationship.fromMap(item))
+            .toList(),
+        imageAddress: map['imageAddress']);
   }
 }
