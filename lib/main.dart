@@ -1,5 +1,9 @@
+import 'dart:io';
+
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:qr_code_scanner/qr_code_scanner.dart';
 import 'package:tasksmanager/screens/create_task.dart';
 import 'package:tasksmanager/screens/home.dart';
 import 'package:tasksmanager/models/TaskModel.dart';
@@ -44,10 +48,69 @@ class MyHomePage extends StatefulWidget {
 }
 
 class _MyHomePageState extends State<MyHomePage> {
+  final GlobalKey qrKey = GlobalKey(debugLabel: 'QR');
+  Barcode? result;
+  QRViewController? controller;
   @override
   void initState() {
     super.initState();
     context.read<TaskProvider>().loadTasks();
+  }
+
+  @override
+  void reassemble() {
+    super.reassemble();
+    if (Platform.isAndroid) {
+      controller!.pauseCamera();
+    } else if (Platform.isIOS) {
+      controller!.resumeCamera();
+    }
+  }
+
+  void _onQRViewCreated(QRViewController controller) {
+    this.controller = controller;
+    controller.scannedDataStream.listen((scanData) {
+      setState(() {
+        result = scanData;
+      });
+    });
+  }
+
+  @override
+  void dispose() {
+    controller?.dispose();
+    super.dispose();
+  }
+
+  void scanQrCode() {
+    showDialog(
+        context: context,
+        builder: (BuildContext dialogContext) {
+          return Dialog(
+            child: Column(
+              children: <Widget>[
+                Expanded(
+                  child: QRView(
+                    key: qrKey,
+                    onQRViewCreated: _onQRViewCreated,
+                  ),
+                ),
+                Expanded(
+                  flex: 1,
+                  child: Center(
+                    child: (result != null)
+                        ? Text(
+                            'Barcode Type: ${describeEnum(result!.format)}   Data: ${result!.code}')
+                        : Text('Scan a code'),
+                  ),
+                )
+              ],
+            ),
+          );
+        });
+    if (result != null) {
+      Navigator.pop(context, result);
+    }
   }
 
   List<TaskModel> tasks = [];
@@ -73,6 +136,16 @@ class _MyHomePageState extends State<MyHomePage> {
     return Scaffold(
       appBar: AppBar(
         title: Text(widget.title),
+        actions: <Widget>[
+          IconButton(
+            icon: const Icon(Icons.add),
+            tooltip: 'Scan qr code',
+            onPressed: () {
+              scanQrCode();
+              // handle the press
+            },
+          ),
+        ],
       ),
       body: Center(
         child: Column(
