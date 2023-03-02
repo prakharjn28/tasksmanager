@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
+import 'dart:io';
 import 'package:tasksmanager/models/TaskModel.dart';
 import 'package:tasksmanager/models/TaskRelationship.dart';
+import 'package:tasksmanager/routes.dart';
 import 'package:tasksmanager/screens/add_relationship.dart';
 import 'package:tasksmanager/screens/relationshipList.dart';
 
@@ -33,6 +36,7 @@ class _CreateTaskState extends State<CreateTask> with InputValidationMixin {
   String status = statusList.first;
   DateTime time = DateTime.now();
   List<TaskRelationship> relatedTasks = [];
+  String selectedImagePath = '';
 
   @override
   void initState() {
@@ -46,7 +50,8 @@ class _CreateTaskState extends State<CreateTask> with InputValidationMixin {
         description = task.description!;
         id = task.id!;
         status = task.status!;
-        relatedTasks = task.relatedTasks!;
+        relatedTasks = task.relatedTasks ?? [];
+        selectedImagePath = task.imageAddress!;
       });
     } else {
       setState(() {
@@ -81,7 +86,8 @@ class _CreateTaskState extends State<CreateTask> with InputValidationMixin {
           description: description,
           status: status,
           relatedTasks: relatedTasks,
-          time: time);
+          time: time,
+          imageAddress: selectedImagePath);
       if (!widget.isFirst) {
         int index =
             tasksProvider.tasks.indexWhere((element) => element.id == id);
@@ -100,10 +106,124 @@ class _CreateTaskState extends State<CreateTask> with InputValidationMixin {
       context,
       MaterialPageRoute(builder: (context) => AddRelationship()),
     );
+    // await Navigator.pushNamed(context, Routes.addImage);
     if (result != null) {
       setState(() {
         relatedTasks.add(result);
       });
+    }
+  }
+
+  Future selectImage() {
+    return showDialog(
+        context: context,
+        builder: (BuildContext context) {
+          return Dialog(
+            shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(20.0)), //this right here
+            child: Container(
+              height: 150,
+              child: Padding(
+                padding: const EdgeInsets.all(12.0),
+                child: Column(
+                  children: [
+                    const Text(
+                      'Select Image From !',
+                      style: TextStyle(
+                          fontSize: 18.0, fontWeight: FontWeight.bold),
+                    ),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                      children: [
+                        GestureDetector(
+                          onTap: () async {
+                            selectedImagePath = await selectImageFromGallery();
+                            if (selectedImagePath != '') {
+                              Navigator.pop(context);
+                              setState(() {});
+                            } else {
+                              ScaffoldMessenger.of(context)
+                                  .showSnackBar(const SnackBar(
+                                content: Text("No Image Selected !"),
+                              ));
+                            }
+                          },
+                          child: Card(
+                              elevation: 5,
+                              child: Padding(
+                                padding: const EdgeInsets.all(8.0),
+                                child: Column(
+                                  children: [
+                                    Image.asset(
+                                      'lib/assets/images/gallery.png',
+                                      height: 60,
+                                      width: 60,
+                                    ),
+                                    const Text('Gallery'),
+                                  ],
+                                ),
+                              )),
+                        ),
+                        GestureDetector(
+                          onTap: () async {
+                            selectedImagePath = await selectImageFromCamera();
+                            print('Image_Path:-');
+                            print(selectedImagePath);
+
+                            if (selectedImagePath != '') {
+                              Navigator.pop(context);
+                              setState(() {});
+                            } else {
+                              ScaffoldMessenger.of(context)
+                                  .showSnackBar(const SnackBar(
+                                content: Text("No Image Captured !"),
+                              ));
+                            }
+                          },
+                          child: Card(
+                              elevation: 5,
+                              child: Padding(
+                                padding: const EdgeInsets.all(8.0),
+                                child: Column(
+                                  children: [
+                                    Image.asset(
+                                      'lib/assets/images/camera.png',
+                                      height: 60,
+                                      width: 60,
+                                    ),
+                                    const Text('Camera'),
+                                  ],
+                                ),
+                              )),
+                        ),
+                      ],
+                    )
+                  ],
+                ),
+              ),
+            ),
+          );
+        });
+  }
+
+  selectImageFromGallery() async {
+    XFile? file = await ImagePicker()
+        .pickImage(source: ImageSource.gallery, imageQuality: 50);
+    if (file != null) {
+      return file.path;
+    } else {
+      return '';
+    }
+  }
+
+  //
+  selectImageFromCamera() async {
+    XFile? file = await ImagePicker()
+        .pickImage(source: ImageSource.camera, imageQuality: 10);
+    if (file != null) {
+      return file.path;
+    } else {
+      return '';
     }
   }
 
@@ -245,23 +365,60 @@ class _CreateTaskState extends State<CreateTask> with InputValidationMixin {
                       editRelation: _editRelation,
                       removeTask: _removeRelation)
                   : Container(),
+              Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    selectedImagePath == ''
+                        ? Container()
+                        : Image.file(
+                            File(selectedImagePath),
+                            height: 200,
+                            width: 400,
+                            fit: BoxFit.cover,
+                          ),
+                    const SizedBox(
+                      height: 20.0,
+                    ),
+                    ElevatedButton(
+                        style: ButtonStyle(
+                            backgroundColor:
+                                MaterialStateProperty.all(Colors.blue),
+                            padding: MaterialStateProperty.all(
+                                const EdgeInsets.symmetric(
+                                    vertical: 15, horizontal: 25)),
+                            textStyle: MaterialStateProperty.all(
+                                const TextStyle(
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.white))),
+                        onPressed: () async {
+                          selectImage();
+                        },
+                        child: const Text('Add Image')),
+                  ],
+                ),
+              ),
               Align(
                 alignment: Alignment.bottomCenter,
                 child: Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 10),
-                  child: ElevatedButton(
-                    style: ElevatedButton.styleFrom(),
-                    onPressed: onUpdate,
-                    child: Text(
-                      widget.isFirst ? "Submit" : "Update",
-                      style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 24,
-                          fontWeight: FontWeight.bold),
-                    ),
-                    // style: ElevatedButton.,
-                  ),
-                ),
+                    padding: const EdgeInsets.symmetric(vertical: 15),
+                    child: ElevatedButton(
+                        style: ButtonStyle(
+                            backgroundColor:
+                                MaterialStateProperty.all(Colors.blue),
+                            padding: MaterialStateProperty.all(
+                                const EdgeInsets.symmetric(
+                                    vertical: 15, horizontal: 25)),
+                            textStyle: MaterialStateProperty.all(
+                                const TextStyle(
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.white))),
+                        onPressed: () async {
+                          onUpdate();
+                        },
+                        child: Text(widget.isFirst ? "Submit" : "Update"))),
               ),
             ],
           ),
