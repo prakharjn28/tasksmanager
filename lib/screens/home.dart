@@ -65,6 +65,7 @@ class _HomeState extends State<Home> {
       child: Consumer<TaskProvider>(
         builder: (context, taskList, _) => ListView.builder(
           itemCount: taskList.tasks.length,
+          physics: const AlwaysScrollableScrollPhysics(),
           itemBuilder: (context, index) {
             final task = taskList.tasks[index];
             return Padding(

@@ -1,3 +1,6 @@
+import 'dart:convert';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
@@ -37,6 +40,7 @@ class _CreateTaskState extends State<CreateTask> with InputValidationMixin {
   DateTime time = DateTime.now();
   List<TaskRelationship> relatedTasks = [];
   String selectedImagePath = '';
+  bool sharedTask = true;
 
   @override
   void initState() {
@@ -52,6 +56,7 @@ class _CreateTaskState extends State<CreateTask> with InputValidationMixin {
         status = task.status!;
         relatedTasks = task.relatedTasks ?? [];
         selectedImagePath = task.imageAddress!;
+        sharedTask = task.public == 0 ? false : true;
       });
     } else {
       setState(() {
@@ -76,8 +81,11 @@ class _CreateTaskState extends State<CreateTask> with InputValidationMixin {
     }
   }
 
-  void onUpdate() {
+  void onUpdate() async {
     var tasksProvider = Provider.of<TaskProvider>(context, listen: false);
+    final FirebaseFirestore firestore = FirebaseFirestore.instance;
+    final FirebaseStorage storage = FirebaseStorage.instance;
+
     if (formKey.currentState!.validate()) {
       formKey.currentState!.save();
       var result = TaskModel(
@@ -87,7 +95,20 @@ class _CreateTaskState extends State<CreateTask> with InputValidationMixin {
           status: status,
           relatedTasks: relatedTasks,
           time: time,
-          imageAddress: selectedImagePath);
+          imageAddress: selectedImagePath,
+          public: sharedTask ? 1 : 0);
+      // if (selectedImagePath.isNotEmpty) {
+      //   // Create a storage reference from our app
+      //   final storageRef = FirebaseStorage.instance.ref();
+      //   final mountainsRef = storageRef.child("mountains.jpg");
+      //   final mountainImagesRef = storageRef.child("images/mountains.jpg");
+      // }
+      if (sharedTask) {
+        firestore
+            .collection('tasks')
+            .doc(result.id.toString())
+            .set(result.toMap());
+      }
       if (!widget.isFirst) {
         int index =
             tasksProvider.tasks.indexWhere((element) => element.id == id);
@@ -273,154 +294,178 @@ class _CreateTaskState extends State<CreateTask> with InputValidationMixin {
         padding: const EdgeInsets.all(10),
         child: Form(
           key: formKey,
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.start,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: <Widget>[
-              Padding(
-                padding: const EdgeInsets.symmetric(vertical: 8),
-                child: TextFormField(
-                  initialValue: title,
-                  onChanged: onChangedTitle,
-                  maxLines: 2,
-                  minLines: 1,
-                  validator: (val) {
-                    if (isTitleValid(val!)) {
-                      return null;
-                    }
-                    return "Please enter title at least more than 6 letters";
-                  },
-                  decoration: const InputDecoration(
-                    border: OutlineInputBorder(),
-                    hintText: 'Enter title',
-                  ),
-                ),
-              ),
-              Padding(
-                padding: const EdgeInsets.symmetric(vertical: 10),
-                child: TextFormField(
-                  initialValue: description,
-                  onChanged: onChangedDescription,
-                  maxLines: 2,
-                  validator: (val) {
-                    if (isDescriptionValid(val!)) {
-                      return null;
-                    }
-                    return "Please enter description in not more than 250 letters";
-                  },
-                  decoration: const InputDecoration(
-                    border: OutlineInputBorder(),
-                    hintText: 'Enter description',
-                  ),
-                ),
-              ),
-              Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 10),
-                  child: DropdownButtonFormField(
-                    value: status,
-                    // Down Arrow Icon
+          child: Expanded(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.start,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: <Widget>[
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 8),
+                  child: TextFormField(
+                    initialValue: title,
+                    onChanged: onChangedTitle,
+                    maxLines: 2,
+                    minLines: 1,
                     validator: (val) {
-                      if (isStatusValid(val!)) {
+                      if (isTitleValid(val!)) {
                         return null;
-                      } else {
-                        return "Please select the status of the task";
                       }
+                      return "Please enter title at least more than 6 letters";
                     },
-                    icon: const Icon(Icons.keyboard_arrow_down),
-                    // Array list of items
-                    items: statusList.map((String items) {
-                      return DropdownMenuItem(
-                        value: items,
-                        child: Text(items),
-                      );
-                    }).toList(),
-                    // After selecting the desired option,it will
-                    // change button value to selected value
-                    onChanged: (String? newValue) {
-                      setState(() {
-                        status = newValue!;
-                      });
-                    },
-                    isExpanded: true,
                     decoration: const InputDecoration(
-                        border: OutlineInputBorder(),
-                        hintText: "Select Status"),
-                  )),
-              !widget.isFirst
-                  ? Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 10),
-                      child: Text(
-                        "Last Updated on: ${time}",
-                        style: const TextStyle(
-                            color: Colors.black,
-                            fontSize: 20,
-                            fontWeight: FontWeight.bold),
-                      ),
-                    )
-                  : Container(),
-              relatedTasks.isNotEmpty
-                  ? RelationshipList(
-                      relations: relatedTasks,
-                      editTasks: _editTask,
-                      editRelation: _editRelation,
-                      removeTask: _removeRelation)
-                  : Container(),
-              Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    selectedImagePath == ''
-                        ? Container()
-                        : Image.file(
-                            File(selectedImagePath),
-                            height: 200,
-                            width: 400,
-                            fit: BoxFit.cover,
-                          ),
-                    const SizedBox(
-                      height: 20.0,
+                      border: OutlineInputBorder(),
+                      hintText: 'Enter title',
                     ),
-                    ElevatedButton(
-                        style: ButtonStyle(
-                            backgroundColor:
-                                MaterialStateProperty.all(Colors.blue),
-                            padding: MaterialStateProperty.all(
-                                const EdgeInsets.symmetric(
-                                    vertical: 15, horizontal: 25)),
-                            textStyle: MaterialStateProperty.all(
-                                const TextStyle(
-                                    fontSize: 18,
-                                    fontWeight: FontWeight.bold,
-                                    color: Colors.white))),
-                        onPressed: () async {
-                          selectImage();
-                        },
-                        child: const Text('Add Image')),
-                  ],
+                  ),
                 ),
-              ),
-              Align(
-                alignment: Alignment.bottomCenter,
-                child: Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 15),
-                    child: ElevatedButton(
-                        style: ButtonStyle(
-                            backgroundColor:
-                                MaterialStateProperty.all(Colors.blue),
-                            padding: MaterialStateProperty.all(
-                                const EdgeInsets.symmetric(
-                                    vertical: 15, horizontal: 25)),
-                            textStyle: MaterialStateProperty.all(
-                                const TextStyle(
-                                    fontSize: 18,
-                                    fontWeight: FontWeight.bold,
-                                    color: Colors.white))),
-                        onPressed: () async {
-                          onUpdate();
-                        },
-                        child: Text(widget.isFirst ? "Submit" : "Update"))),
-              ),
-            ],
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 10),
+                  child: TextFormField(
+                    initialValue: description,
+                    onChanged: onChangedDescription,
+                    maxLines: 2,
+                    validator: (val) {
+                      if (isDescriptionValid(val!)) {
+                        return null;
+                      }
+                      return "Please enter description in not more than 250 letters";
+                    },
+                    decoration: const InputDecoration(
+                      border: OutlineInputBorder(),
+                      hintText: 'Enter description',
+                    ),
+                  ),
+                ),
+                Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 10),
+                    child: DropdownButtonFormField(
+                      value: status,
+                      // Down Arrow Icon
+                      validator: (val) {
+                        if (isStatusValid(val!)) {
+                          return null;
+                        } else {
+                          return "Please select the status of the task";
+                        }
+                      },
+                      icon: const Icon(Icons.keyboard_arrow_down),
+                      // Array list of items
+                      items: statusList.map((String items) {
+                        return DropdownMenuItem(
+                          value: items,
+                          child: Text(items),
+                        );
+                      }).toList(),
+                      // After selecting the desired option,it will
+                      // change button value to selected value
+                      onChanged: (String? newValue) {
+                        setState(() {
+                          status = newValue!;
+                        });
+                      },
+                      isExpanded: true,
+                      decoration: const InputDecoration(
+                          border: OutlineInputBorder(),
+                          hintText: "Select Status"),
+                    )),
+                widget.isFirst
+                    ? Container(
+                        padding: EdgeInsets.all(10),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(
+                              "Task Sharing",
+                              style: TextStyle(
+                                  fontSize: 18, fontWeight: FontWeight.bold),
+                            ),
+                            Switch(
+                                value: sharedTask,
+                                onChanged: ((value) => setState(() {
+                                      sharedTask = value;
+                                    })))
+                          ],
+                        ),
+                      )
+                    : Container(),
+                !widget.isFirst
+                    ? Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 10),
+                        child: Text(
+                          "Last Updated on: ${time}",
+                          style: const TextStyle(
+                              color: Colors.black,
+                              fontSize: 20,
+                              fontWeight: FontWeight.bold),
+                        ),
+                      )
+                    : Container(),
+                relatedTasks.isNotEmpty
+                    ? RelationshipList(
+                        relations: relatedTasks,
+                        editTasks: _editTask,
+                        editRelation: _editRelation,
+                        removeTask: _removeRelation)
+                    : Container(),
+                Center(
+                  child: widget.isFirst
+                      ? Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            selectedImagePath == ''
+                                ? Container()
+                                : Image.file(
+                                    File(selectedImagePath),
+                                    height: 200,
+                                    width: 400,
+                                    fit: BoxFit.cover,
+                                  ),
+                            const SizedBox(
+                              height: 20.0,
+                            ),
+                            ElevatedButton(
+                                style: ButtonStyle(
+                                    backgroundColor:
+                                        MaterialStateProperty.all(Colors.blue),
+                                    padding: MaterialStateProperty.all(
+                                        const EdgeInsets.symmetric(
+                                            vertical: 15, horizontal: 25)),
+                                    textStyle: MaterialStateProperty.all(
+                                        const TextStyle(
+                                            fontSize: 18,
+                                            fontWeight: FontWeight.bold,
+                                            color: Colors.white))),
+                                onPressed: () async {
+                                  selectImage();
+                                },
+                                child: const Text('Add Image')),
+                          ],
+                        )
+                      : Container(),
+                ),
+                Align(
+                  alignment: Alignment.bottomCenter,
+                  child: Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 15),
+                      child: ElevatedButton(
+                          style: ButtonStyle(
+                              backgroundColor:
+                                  MaterialStateProperty.all(Colors.blue),
+                              padding: MaterialStateProperty.all(
+                                  const EdgeInsets.symmetric(
+                                      vertical: 15, horizontal: 25)),
+                              textStyle: MaterialStateProperty.all(
+                                  const TextStyle(
+                                      fontSize: 18,
+                                      fontWeight: FontWeight.bold,
+                                      color: Colors.white))),
+                          onPressed: () async {
+                            onUpdate();
+                          },
+                          child: Text(widget.isFirst ? "Submit" : "Update"))),
+                ),
+              ],
+            ),
           ),
         ),
       ),

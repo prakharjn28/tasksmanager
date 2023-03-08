@@ -1,8 +1,12 @@
+import 'dart:ffi';
 import 'dart:io';
-
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:tasksmanager/provider/loginProvider.dart';
+import 'package:tasksmanager/screens/login.dart';
 import 'firebase_options.dart';
 import 'package:provider/provider.dart';
 import 'package:qr_code_scanner/qr_code_scanner.dart';
@@ -17,6 +21,7 @@ void main() {
     MultiProvider(
       providers: [
         ChangeNotifierProvider(create: (_) => TaskProvider()),
+        ChangeNotifierProvider(create: ((context) => LoginProvider()))
         // We can add more providers as we move forward with the app.
       ],
       child: const MyApp(),
@@ -32,9 +37,8 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       title: "Prakhar's Task Manager",
-      theme: ThemeData(
-        primarySwatch: Colors.blue,
-      ),
+      theme:
+          ThemeData(primarySwatch: Colors.blue, backgroundColor: Colors.white),
       home: const MyHomePage(title: "Prakhar's Task Manager"),
       routes: Routes.routes,
     );
@@ -56,9 +60,15 @@ class _MyHomePageState extends State<MyHomePage> {
   @override
   void initState() {
     super.initState();
-    Firebase.initializeApp(
+    initAsync();
+  }
+
+  void initAsync() async {
+    await Firebase.initializeApp(
       options: DefaultFirebaseOptions.currentPlatform,
     );
+    await context.read<LoginProvider>().getPrefItems();
+    await context.read<TaskProvider>().mergeTasks();
     context.read<TaskProvider>().loadTasks();
   }
 
@@ -87,7 +97,13 @@ class _MyHomePageState extends State<MyHomePage> {
     super.dispose();
   }
 
-  void scanQrCode() {
+  void logout() async {
+    var loginPro = Provider.of<LoginProvider>(context, listen: false);
+    await FirebaseAuth.instance.signOut();
+    loginPro.removePrefItem();
+  }
+
+  void scanQrCode() async {
     showDialog(
         context: context,
         builder: (BuildContext dialogContext) {
@@ -138,45 +154,71 @@ class _MyHomePageState extends State<MyHomePage> {
   Widget build(BuildContext context) {
     var tasksProvider = Provider.of<TaskProvider>(context);
 
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(widget.title),
-        actions: <Widget>[
-          IconButton(
-            icon: const Icon(Icons.add),
-            tooltip: 'Scan qr code',
-            onPressed: () {
-              scanQrCode();
-              // handle the press
-            },
-          ),
-        ],
-      ),
-      body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: <Widget>[
-            tasksProvider.tasks.isEmpty
-                ? const Padding(
-                    padding: EdgeInsets.all(20),
-                    child: Text(
-                      'There are no tasks currently. Please add a task.',
-                      style:
-                          TextStyle(fontWeight: FontWeight.bold, fontSize: 20),
-                      textAlign: TextAlign.center,
-                    ),
-                  )
-                : Home()
-          ],
-        ),
-      ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () {
-          _createNavigate(context);
-        },
-        // tooltip: 'Increment',
-        child: const Icon(Icons.add),
-      ), // This trailing comma makes auto-formatting nicer for build methods.
+    return Consumer<LoginProvider>(
+      builder: (context, loginProvider, _) {
+        if (loginProvider.uid.isEmpty) {
+          return Login();
+        } else {
+          return Scaffold(
+            appBar: AppBar(
+              title: Text(widget.title),
+              actions: <Widget>[
+                IconButton(
+                  icon: const Icon(Icons.add),
+                  tooltip: 'Scan qr code',
+                  onPressed: () {
+                    scanQrCode();
+                    // handle the press
+                  },
+                ),
+                IconButton(
+                  icon: const Icon(Icons.logout),
+                  tooltip: 'Logout',
+                  onPressed: () {
+                    logout();
+                    // handle the press
+                  },
+                ),
+              ],
+            ),
+            body: Center(
+              child: RefreshIndicator(
+                onRefresh: () {
+                  return Future.delayed(
+                    Duration(seconds: 1),
+                    () {
+                      context.read<TaskProvider>().mergeTasks();
+                    },
+                  );
+                },
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: <Widget>[
+                    tasksProvider.tasks.isEmpty
+                        ? const Padding(
+                            padding: EdgeInsets.all(20),
+                            child: Text(
+                              'There are no tasks currently. Please add a task.',
+                              style: TextStyle(
+                                  fontWeight: FontWeight.bold, fontSize: 20),
+                              textAlign: TextAlign.center,
+                            ),
+                          )
+                        : Home()
+                  ],
+                ),
+              ),
+            ),
+            floatingActionButton: FloatingActionButton(
+              onPressed: () {
+                _createNavigate(context);
+              },
+              // tooltip: 'Increment',
+              child: const Icon(Icons.add),
+            ), // This trailing comma makes auto-formatting nicer for build methods.
+          );
+        }
+      },
     );
   }
 }

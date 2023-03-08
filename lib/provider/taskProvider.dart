@@ -1,11 +1,15 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:sqflite/sqflite.dart';
 import 'package:tasksmanager/databaseHelper.dart';
 import 'package:tasksmanager/models/TaskModel.dart';
 import 'package:tasksmanager/models/TaskRelationship.dart';
+import 'package:collection/collection.dart';
 
 class TaskProvider extends ChangeNotifier {
   List<TaskModel> _tasks = [];
+  List<Map<String, dynamic>> cloudList = [];
   final List<String> _relationshipLabels = [
     'is subtask of',
     'is blocked by',
@@ -16,6 +20,7 @@ class TaskProvider extends ChangeNotifier {
 
   List<TaskModel> get tasks => _tasks;
   List<String> get relationshipLabels => _relationshipLabels;
+  List<Map<String, dynamic>> get cloudData => cloudList;
 
   // Define a method to add the TaskModel to the database
   Future<void> addTaskToDB(TaskModel task) async {
@@ -24,9 +29,16 @@ class TaskProvider extends ChangeNotifier {
 
     // call a method on the instance to get the database object
     Database db = await dbHelper.database;
-    print("tasks ${task.toMap()}");
     // final db = await DatabaseHelper().database;
     await db.insert('tasks', task.toMap());
+  }
+
+  Future<void> fetchCloudList() async {
+    final FirebaseFirestore firestore = FirebaseFirestore.instance;
+    final QuerySnapshot<Map<String, dynamic>> querySnapshot =
+        await firestore.collection('tasks').get();
+    cloudList = querySnapshot.docs.map((doc) => doc.data()).toList();
+    notifyListeners();
   }
 
   // Define a method to update the TaskModel in the database
@@ -57,6 +69,41 @@ class TaskProvider extends ChangeNotifier {
       where: 'id = ?',
       whereArgs: [task.id],
     );
+  }
+
+  Future<void> mergeTasks() async {
+    // get local tasks list and cloud tasks list
+    List<TaskModel> localTasks = _tasks;
+    await fetchCloudList(); //fetches the cloud tasks list and updates the cloudList variable
+
+    // create new list to hold the merged tasks
+    List<TaskModel> mergedTasks = [];
+
+    // loop through local tasks list and check if ID exists in cloud tasks list
+    for (TaskModel localTask in localTasks) {
+      Map<String, dynamic>? cloudData = cloudList
+          .firstWhereOrNull((cloudTask) => cloudTask['id'] == localTask.id);
+      if (cloudData != null) {
+        TaskModel cloudTask = TaskModel.fromJson(cloudData);
+        mergedTasks.add(localTask);
+      } else {
+        mergedTasks.add(localTask);
+      }
+    }
+
+    // loop through cloud tasks list and add tasks not in local tasks list
+    for (Map<String, dynamic> cloudTask in cloudList) {
+      bool taskExists =
+          localTasks.any((localTask) => localTask.id == cloudTask['id']);
+      if (!taskExists) {
+        TaskModel newTask = TaskModel.fromJson(cloudTask);
+        mergedTasks.add(newTask);
+      }
+    }
+
+    // update local tasks list with merged tasks list
+    _tasks = mergedTasks;
+    notifyListeners();
   }
 
   // Define a method to load the TaskModel data from the database

@@ -52,12 +52,13 @@ class DefaultFirebaseOptions {
     }
   }
 
+// Please add your firebase keys here
   static const FirebaseOptions android = FirebaseOptions(
-    apiKey: 'AIzaSyBDyA3E5pFyQd4NY7iCMrogM3zVUfyujQ4',
-    appId: '1:381933862027:android:ff6b03192923d2a2f4688e',
-    messagingSenderId: '381933862027',
-    projectId: 'taskmanager-ea36e',
-    databaseURL: 'https://taskmanager-ea36e-default-rtdb.firebaseio.com',
-    storageBucket: 'taskmanager-ea36e.appspot.com',
+    apiKey: '',
+    appId: '',
+    messagingSenderId: '',
+    projectId: '',
+    databaseURL: '',
+    storageBucket: '',
   );
 }

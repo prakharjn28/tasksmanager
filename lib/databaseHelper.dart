@@ -20,6 +20,7 @@ class DatabaseHelper {
   static const columnTime = 'time';
   static const columnRelatedTasks = 'relatedTasks';
   static const columnImageAddress = 'imageAddress';
+  static const columnPublic = 'public';
 
   // make this a singleton class
   DatabaseHelper._privateConstructor();
@@ -51,7 +52,8 @@ class DatabaseHelper {
   $columnStatus TEXT NOT NULL,
   $columnTime INTEGER,
   $columnRelatedTasks TEXT,
-  $columnImageAddress TEXT
+  $columnImageAddress TEXT,
+  $columnPublic INTEGER
   )
 ''');
   }
@@ -67,7 +69,8 @@ class DatabaseHelper {
       columnTime: task.time?.millisecondsSinceEpoch,
       columnRelatedTasks:
           jsonEncode(task.relatedTasks?.map((rel) => rel.toMap()).toList()),
-      columnImageAddress: task.imageAddress
+      columnImageAddress: task.imageAddress,
+      columnPublic: task.public
     };
     if (task.id != null) {
       map[columnId] = task.id;
@@ -93,7 +96,8 @@ class DatabaseHelper {
                 .map((rel) => TaskRelationship.fromMap(rel))
                 .toList()
             : null,
-        imageAddress: map[columnImageAddress]);
+        imageAddress: map[columnImageAddress],
+        public: map[columnPublic]);
   }
 
 // Insert a new task into the database

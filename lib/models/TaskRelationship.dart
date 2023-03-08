@@ -17,14 +17,21 @@ class TaskRelationship {
   }
 
   factory TaskRelationship.fromMap(Map<String, dynamic> map) {
+    final relatedTaskId = map['related_task_id'];
+    final relatedTasks = TaskModel.fromMap(map).relatedTasks;
+    final relatedTask = relatedTasks
+        ?.firstWhere((task) => task.relatedTask.id == relatedTaskId)
+        .relatedTask;
+
     return TaskRelationship(
-      relatedTask: TaskModel(
-        id: map['related_task_id'],
-        title: '',
-        description: '',
-        status: '',
-        time: null,
-      ),
+      relatedTask: relatedTask ??
+          TaskModel(
+            id: relatedTaskId,
+            title: '',
+            description: '',
+            status: '',
+            time: null,
+          ),
       relation: map['relation'],
     );
   }
